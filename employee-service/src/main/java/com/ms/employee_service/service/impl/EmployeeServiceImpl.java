@@ -4,12 +4,14 @@ import com.ms.employee_service.common.Mapper;
 import com.ms.employee_service.dto.APIResponseDto;
 import com.ms.employee_service.dto.DepartmentDto;
 import com.ms.employee_service.dto.EmployeeDto;
+import com.ms.employee_service.dto.OrganizationDto;
 import com.ms.employee_service.entity.Employee;
 import com.ms.employee_service.repository.EmployeeRepository;
 import com.ms.employee_service.service.APIClient;
 import com.ms.employee_service.service.EmployeeService;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.retry.annotation.Retry;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -31,6 +33,8 @@ public class EmployeeServiceImpl implements EmployeeService {
     }
 
     @Override
+    @CircuitBreaker(name = "${spring.application.name}",fallbackMethod = "getDefaultDepartment")
+    @Retry(name = "${spring.application.name}",fallbackMethod = "getDefaultDepartment") // Retry pattern
     public APIResponseDto getEmployeeById(Long id) {
         Employee employee = employeeRepository.findById(id).orElse(null);
 
@@ -38,7 +42,29 @@ public class EmployeeServiceImpl implements EmployeeService {
             throw new RuntimeException("Employee not found");
         }
 
+        OrganizationDto organizationDto = apiClient.getOrganization(employee.getOrganizationCode());
         DepartmentDto departmentDto = apiClient.getDepartment(employee.getDepartmentCode());
+
+        APIResponseDto apiResponseDto = new APIResponseDto();
+        EmployeeDto employeeDto = mapper.toDto(employee);
+        apiResponseDto.setEmployee(employeeDto);
+        apiResponseDto.setDepartment(departmentDto);
+        apiResponseDto.setOrganization(organizationDto);
+
+        return apiResponseDto;
+    }
+
+    public APIResponseDto getDefaultDepartment(Long id,Exception exception) {
+        Employee employee = employeeRepository.findById(id).orElse(null);
+        DepartmentDto departmentDto = new DepartmentDto();
+        departmentDto.setDepartmentName("R&D Department");
+        departmentDto.setDepartmentCode("RD001");
+        departmentDto.setDepartmentDescription("Research and Development Department");
+
+        if (employee == null) {
+            throw new RuntimeException("Employee not found");
+        }
+
         APIResponseDto apiResponseDto = new APIResponseDto();
         EmployeeDto employeeDto = mapper.toDto(employee);
         apiResponseDto.setEmployee(employeeDto);
