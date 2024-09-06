@@ -35,8 +35,8 @@ public class EmployeeServiceImpl implements EmployeeService {
     }
 
     @Override
-    //@CircuitBreaker(name = "${spring.application.name}",fallbackMethod = "getDefaultDepartment")
-    //@Retry(name = "${spring.application.name}",fallbackMethod = "getDefaultDepartment") // Retry pattern
+    @CircuitBreaker(name = "${spring.application.name}",fallbackMethod = "getDefaultDepartment")
+    @Retry(name = "${spring.application.name}",fallbackMethod = "getDefaultDepartment") // Retry pattern
     public APIResponseDto getEmployeeById(Long id) {
         Employee employee = employeeRepository.findById(id).orElse(null);
 
