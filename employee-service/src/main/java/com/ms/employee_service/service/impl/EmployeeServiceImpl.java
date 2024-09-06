@@ -7,7 +7,8 @@ import com.ms.employee_service.dto.EmployeeDto;
 import com.ms.employee_service.dto.OrganizationDto;
 import com.ms.employee_service.entity.Employee;
 import com.ms.employee_service.repository.EmployeeRepository;
-import com.ms.employee_service.service.APIClient;
+import com.ms.employee_service.service.APIClientDepartmentService;
+import com.ms.employee_service.service.APIClientOrganizationService;
 import com.ms.employee_service.service.EmployeeService;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
@@ -20,7 +21,8 @@ public class EmployeeServiceImpl implements EmployeeService {
 
     private final EmployeeRepository employeeRepository;
     private final Mapper mapper;
-    private final APIClient apiClient;
+    private final APIClientDepartmentService apiClientDep;
+    private final APIClientOrganizationService apiClientOrg;
 
     @Override
     public EmployeeDto saveEmployee(EmployeeDto employeeDto) {
@@ -33,8 +35,8 @@ public class EmployeeServiceImpl implements EmployeeService {
     }
 
     @Override
-    @CircuitBreaker(name = "${spring.application.name}",fallbackMethod = "getDefaultDepartment")
-    @Retry(name = "${spring.application.name}",fallbackMethod = "getDefaultDepartment") // Retry pattern
+    //@CircuitBreaker(name = "${spring.application.name}",fallbackMethod = "getDefaultDepartment")
+    //@Retry(name = "${spring.application.name}",fallbackMethod = "getDefaultDepartment") // Retry pattern
     public APIResponseDto getEmployeeById(Long id) {
         Employee employee = employeeRepository.findById(id).orElse(null);
 
@@ -42,8 +44,8 @@ public class EmployeeServiceImpl implements EmployeeService {
             throw new RuntimeException("Employee not found");
         }
 
-        OrganizationDto organizationDto = apiClient.getOrganization(employee.getOrganizationCode());
-        DepartmentDto departmentDto = apiClient.getDepartment(employee.getDepartmentCode());
+        OrganizationDto organizationDto = apiClientOrg.getOrganization(employee.getOrganizationCode());
+        DepartmentDto departmentDto = apiClientDep.getDepartment(employee.getDepartmentCode());
 
         APIResponseDto apiResponseDto = new APIResponseDto();
         EmployeeDto employeeDto = mapper.toDto(employee);
